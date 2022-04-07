@@ -1,4 +1,9 @@
-import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
+import {
+  createUserWithEmailAndPassword,
+  getAuth,
+  sendEmailVerification,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
 import "./App.css";
 import app from "./firebase.init";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -11,6 +16,7 @@ const auth = getAuth(app);
 function App() {
   const [validated, setValidated] = useState(false);
   const [error, setError] = useState();
+  const [registered, setregistered] = useState(false);
   const [email, setEmail] = useState(""); //email string store kore
   const [password, setPassword] = useState("");
   // email set
@@ -21,6 +27,13 @@ function App() {
   //set password
   const handlePasswordBlur = (event) => {
     setPassword(event.target.value);
+  };
+
+  // set registered
+
+  const handleregisteredChange = (event) => {
+    setregistered(event.target.checked);
+    // console.log(event.target.checked);
   };
 
   //get submit value
@@ -43,25 +56,48 @@ function App() {
     setError(""); // jodi error na thake
 
     //get user data
-    createUserWithEmailAndPassword(auth, email, password)
-      .then((result) => {
-        const user = result.user;
-        console.log(user);
-        setEmail("");
-        setPassword("");
-      })
-      .catch((error) => {
-        console.error(error);
-        setError(error.message);
-      });
+    if (registered) {
+      signInWithEmailAndPassword(auth, email, password) //jodi registered than login
+        .then((result) => {
+          const user = result.user;
+          console.log(user);
+        })
+        .catch((error) => {
+          console.error(error);
+          setError(error.message);
+        });
+    } else {
+      createUserWithEmailAndPassword(auth, email, password) //!registered do register
+        .then((result) => {
+          const user = result.user;
+          console.log(user);
+          setEmail("");
+          setPassword("");
+          verifyEmail(); // when user create successful
+        })
+        .catch((error) => {
+          console.error(error);
+          setError(error.message);
+        });
+    }
 
     event.preventDefault();
+  };
+
+  // check email verification
+
+  const verifyEmail = () => {
+    sendEmailVerification(auth.currentUser).then(() => {
+      console.log("Email verification send");
+    });
   };
 
   return (
     <div>
       <div className="registration w-50 mx-auto mt-5">
-        <h2 className="text-primary">Please Register !!! </h2>
+        <h2 className="text-primary">
+          Please {registered ? "login" : "Register"} !!!
+        </h2>
         <Form noValidate validated={validated} onSubmit={handleFormSubmit}>
           <Form.Group className="mb-3" controlId="formBasicEmail">
             <Form.Label>Email address</Form.Label>
@@ -91,9 +127,16 @@ function App() {
               Please provide a valid password.
             </Form.Control.Feedback>
           </Form.Group>
+          <Form.Group className="mb-3" controlId="formBasicCheckbox">
+            <Form.Check
+              onChange={handleregisteredChange}
+              type="checkbox"
+              label="Already registereded"
+            />
+          </Form.Group>
           <p className="text-danger">{error}</p>
           <Button variant="primary" type="submit">
-            Register
+            {registered ? "login" : "Register"}
           </Button>
         </Form>
       </div>
